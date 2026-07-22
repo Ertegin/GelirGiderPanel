@@ -16,39 +16,79 @@
             @Model.StartDate.ToString("dd MMMM yyyy") – @Model.EndDate.ToString("dd MMMM yyyy") dönemi
         </p>
     </div>
-    <a asp-action="ExportToExcel"
-       asp-route-startDate="@D(Model.StartDate)"
-       asp-route-endDate="@D(Model.EndDate)"
-       class="btn btn-primary">
-        <i class="bi bi-file-earmark-excel me-1"></i> Excel'e Aktar
-    </a>
+    <div class="d-flex gap-2">
+        @* Her iki dışa aktarma linki de seçili TÜM filtreleri taşır *@
+        <a asp-action="ExportToPdf"
+           asp-route-startDate="@D(Model.StartDate)"
+           asp-route-endDate="@D(Model.EndDate)"
+           asp-route-categoryId="@Model.CategoryId"
+           asp-route-transactionTypeId="@Model.TransactionTypeId"
+           class="btn btn-outline-danger">
+            <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+        </a>
+        <a asp-action="ExportToExcel"
+           asp-route-startDate="@D(Model.StartDate)"
+           asp-route-endDate="@D(Model.EndDate)"
+           asp-route-categoryId="@Model.CategoryId"
+           asp-route-transactionTypeId="@Model.TransactionTypeId"
+           class="btn btn-primary">
+            <i class="bi bi-file-earmark-excel me-1"></i> Excel'e Aktar
+        </a>
+    </div>
 </div>
 
-<!-- ======= TARİH FİLTRESİ ======= -->
+<!-- ======= FİLTRE ======= -->
 <div class="card mb-4">
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-2 align-items-end">
-            <div class="col-md-3">
+        <form asp-action="Index" method="get" id="filterForm" class="row g-2 align-items-end">
+            <div class="col-md-2">
                 <label class="form-label small fw-semibold">Başlangıç Tarihi</label>
-                <input type="date" name="startDate" value="@D(Model.StartDate)" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold">Bitiş Tarihi</label>
-                <input type="date" name="endDate" value="@D(Model.EndDate)" class="form-control" />
+                <input type="date" id="startDate" name="startDate" value="@D(Model.StartDate)" class="form-control" />
             </div>
             <div class="col-md-2">
+                <label class="form-label small fw-semibold">Bitiş Tarihi</label>
+                <input type="date" id="endDate" name="endDate" value="@D(Model.EndDate)" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Kategori</label>
+                <select name="categoryId" class="form-select" asp-items="ViewBag.Categories">
+                    <option value="">Tüm Kategoriler</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Tür</label>
+                <select name="transactionTypeId" class="form-select" asp-items="ViewBag.TransactionTypes">
+                    <option value="">Gelir + Gider</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-dark w-100">
                     <i class="bi bi-funnel me-1"></i> Filtrele
                 </button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Filtreleri temizle">
+                    <i class="bi bi-x-lg"></i>
+                </a>
             </div>
-            <div class="col-md-4 text-md-end">
+            <div class="col-12">
+                @* Hazır dönem butonları: tarihleri doldurup formu gönderir,
+                   böylece seçili kategori ve tür filtreleri KORUNUR. *@
                 <div class="btn-group" role="group" aria-label="Hazır dönemler">
-                    <a asp-action="Index" asp-route-startDate="@D(monthStart)" asp-route-endDate="@D(today)"
-                       class="btn btn-sm btn-outline-dark">Bu Ay</a>
-                    <a asp-action="Index" asp-route-startDate="@D(prevMonthStart)" asp-route-endDate="@D(prevMonthEnd)"
-                       class="btn btn-sm btn-outline-dark">Geçen Ay</a>
-                    <a asp-action="Index" asp-route-startDate="@D(yearStart)" asp-route-endDate="@D(today)"
-                       class="btn btn-sm btn-outline-dark">Bu Yıl</a>
+                    <button type="button" class="btn btn-sm btn-outline-dark"
+                            onclick="setRange('@D(monthStart)', '@D(today)')">
+                        Bu Ay
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-dark"
+                            onclick="setRange('@D(prevMonthStart)', '@D(prevMonthEnd)')">
+                        Geçen Ay
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-dark"
+                            onclick="setRange('@D(prevMonthStart)', '@D(today)')">
+                        Geçen Ay + Bu Ay
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-dark"
+                            onclick="setRange('@D(yearStart)', '@D(today)')">
+                        Bu Yıl
+                    </button>
                 </div>
             </div>
         </form>
@@ -171,3 +211,16 @@
         }
     </div>
 </div>
+@section Scripts {
+    <script>
+        // Hazır dönem butonları: tarihleri set edip formu gönderir.
+        // Form submit edildiği için kategori ve tür seçimleri de birlikte gider.
+        function setRange(start, end) {
+            console.log("burdayim");
+            console.log(start);
+            document.getElementById('startDate').value = start;
+            document.getElementById('endDate').value = end;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}

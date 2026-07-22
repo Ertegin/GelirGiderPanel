@@ -10,6 +10,13 @@ namespace GelirGiderPanel.ViewModels
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
+        // ---- Filtreler ----
+        /// <summary>Seçilen kategori (null = tüm kategoriler).</summary>
+        public int? CategoryId { get; set; }
+
+        /// <summary>Seçilen işlem türü (null = Gelir + Gider).</summary>
+        public int? TransactionTypeId { get; set; }
+
         public decimal TotalIncome { get; set; }
         public decimal TotalExpense { get; set; }
         public decimal NetBalance => TotalIncome - TotalExpense;

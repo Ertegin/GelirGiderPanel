@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// QuestPDF: yıllık geliri 1M USD altındaki işletmeler için ücretsiz Community lisansı.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 // ============ SERVİSLER ============
 
 // MVC
