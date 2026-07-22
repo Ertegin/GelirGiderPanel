@@ -1,5 +1,6 @@
 using GelirGiderPanel.Data;
 using GelirGiderPanel.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,8 @@ namespace GelirGiderPanel.Controllers
     /// <summary>
     /// Gelir / Gider işlemleri CRUD.
     /// </summary>
+
+    [Authorize(Policy = "AdminPolicy")]
     public class TransactionsController : Controller
     {
         private readonly AppDbContext _context;
@@ -41,6 +44,8 @@ namespace GelirGiderPanel.Controllers
         }
 
         // GET: /Transactions/Create
+
+
         public async Task<IActionResult> Create()
         {
             await LoadDropdownsAsync();
@@ -50,6 +55,7 @@ namespace GelirGiderPanel.Controllers
         // POST: /Transactions/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        
         public async Task<IActionResult> Create(
             [Bind("Amount,Description,Date,CategoryId,TransactionTypeId")] Transaction transaction)
         {

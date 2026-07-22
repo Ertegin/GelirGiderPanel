@@ -1,5 +1,6 @@
 using GelirGiderPanel.Data;
 using GelirGiderPanel.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,9 @@ namespace GelirGiderPanel.Controllers
     /// <summary>
     /// Kategori CRUD işlemleri: Listeleme, Ekleme, Düzenleme, Silme.
     /// </summary>
+    /// 
+    //GuvenPolicy
+    [Authorize(Policy = "GuvenPolicy")]
     public class CategoriesController : Controller
     {
         private readonly AppDbContext _context;

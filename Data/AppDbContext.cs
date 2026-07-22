@@ -1,4 +1,5 @@
 using GelirGiderPanel.Enums;
+using GelirGiderPanel.Initializer;
 using GelirGiderPanel.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,8 @@ namespace GelirGiderPanel.Data
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Transaction> Transactions => Set<Transaction>();
         public DbSet<TransactionType> TransactionTypes => Set<TransactionType>();
+
+        public DbSet<AppUser> Users => Set<AppUser>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,8 +50,8 @@ namespace GelirGiderPanel.Data
                 Enum.GetValues<TransactionStatus>().Select(e=>new TransactionType { Id=(int)e,Name=e.ToString()})
                 );
 
-            // Başlangıç kategorileri (CreatedAt için sabit değer verilir,
-            // aksi halde her migration'da değişip fark oluşturur):
+            
+            DataInitializer.Seed(modelBuilder);
             var seedDate = new DateTime(2026, 1, 1);
             modelBuilder.Entity<Category>().HasData(
                 new Category { Id = 1, Name = "Mutfak",   Description = "Mutfak ve malzeme giderleri", IsActive = true, CreatedAt = seedDate },

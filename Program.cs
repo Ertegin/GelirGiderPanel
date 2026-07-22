@@ -1,7 +1,10 @@
-using System.Globalization;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using GelirGiderPanel.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +20,24 @@ builder.Services.AddControllersWithViews();
 // Bağlantı dizesi appsettings.json içindeki "DefaultConnection" anahtarından okunur.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(opt =>
+{
+    opt.LoginPath = "/Auth/Login";
+    opt.Cookie.Name = "UserDetail";
+    opt.AccessDeniedPath = "/Auth/AccessDenied";
+    // 
+    opt.ExpireTimeSpan = TimeSpan.FromHours(1); //Cookie) varsayılan yaşam süresini
+    opt.SlidingExpiration = true; //aktifliğine bağlı olarak oturum süresini dinamik olarak uzatan
+
+});
+
+builder.Services.AddAuthorization(opt =>
+{
+    opt.AddPolicy("AdminPolicy", policy => policy.RequireClaim("role", "admin", "Admin"));
+    opt.AddPolicy("GuvenPolicy", policy => policy.RequireClaim("role", "User", "Admin", "admin"));
+});
 
 var app = builder.Build();
 
@@ -45,10 +66,11 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 
 app.Run();

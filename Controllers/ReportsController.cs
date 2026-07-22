@@ -4,6 +4,7 @@ using GelirGiderPanel.Documents;
 using GelirGiderPanel.Enums;
 using GelirGiderPanel.Models;
 using GelirGiderPanel.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,8 @@ using QuestPDF.Fluent;
 
 namespace GelirGiderPanel.Controllers
 {
+
+    [Authorize(Policy = "GuvenPolicy")]
     public class ReportsController : Controller
     {
         /// <summary>

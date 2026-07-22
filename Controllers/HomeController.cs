@@ -1,6 +1,7 @@
 using GelirGiderPanel.Data;
 using GelirGiderPanel.Enums;
 using GelirGiderPanel.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,8 @@ namespace GelirGiderPanel.Controllers
     /// Dashboard (özet kartlar) ve Chart.js için JSON veri endpoint'leri.
     /// TransactionTypeId: 1 = Gelir, 2 = Gider (seed data ile sabitlenmiştir).
     /// </summary>
+    /// 
+    [Authorize(Policy = "GuvenPolicy")]
     public class HomeController : Controller
     {
         //private const int GelirId = 1;
