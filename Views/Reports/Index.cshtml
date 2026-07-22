@@ -1,0 +1,173 @@
+﻿@model GelirGiderPanel.ViewModels.ReportViewModel
+@{
+    ViewData["Title"] = "Raporlar";
+    var today = DateTime.Today;
+    var monthStart = new DateTime(today.Year, today.Month, 1);
+    var prevMonthStart = monthStart.AddMonths(-1);
+    var prevMonthEnd = monthStart.AddDays(-1);
+    var yearStart = new DateTime(today.Year, 1, 1);
+    string D(DateTime d) => d.ToString("yyyy-MM-dd");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Raporlar</h1>
+        <p class="text-muted mb-0">
+            @Model.StartDate.ToString("dd MMMM yyyy") – @Model.EndDate.ToString("dd MMMM yyyy") dönemi
+        </p>
+    </div>
+    <a asp-action="ExportToExcel"
+       asp-route-startDate="@D(Model.StartDate)"
+       asp-route-endDate="@D(Model.EndDate)"
+       class="btn btn-primary">
+        <i class="bi bi-file-earmark-excel me-1"></i> Excel'e Aktar
+    </a>
+</div>
+
+<!-- ======= TARİH FİLTRESİ ======= -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Başlangıç Tarihi</label>
+                <input type="date" name="startDate" value="@D(Model.StartDate)" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Bitiş Tarihi</label>
+                <input type="date" name="endDate" value="@D(Model.EndDate)" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-dark w-100">
+                    <i class="bi bi-funnel me-1"></i> Filtrele
+                </button>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="btn-group" role="group" aria-label="Hazır dönemler">
+                    <a asp-action="Index" asp-route-startDate="@D(monthStart)" asp-route-endDate="@D(today)"
+                       class="btn btn-sm btn-outline-dark">Bu Ay</a>
+                    <a asp-action="Index" asp-route-startDate="@D(prevMonthStart)" asp-route-endDate="@D(prevMonthEnd)"
+                       class="btn btn-sm btn-outline-dark">Geçen Ay</a>
+                    <a asp-action="Index" asp-route-startDate="@D(yearStart)" asp-route-endDate="@D(today)"
+                       class="btn btn-sm btn-outline-dark">Bu Yıl</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======= DÖNEM ÖZETİ ======= -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small text-uppercase fw-semibold">Dönem Geliri</p>
+                <h2 class="h4 text-income mb-0">@Model.TotalIncome.ToString("N2") ₺</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small text-uppercase fw-semibold">Dönem Gideri</p>
+                <h2 class="h4 text-expense mb-0">@Model.TotalExpense.ToString("N2") ₺</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1 small text-uppercase fw-semibold">Dönem Net</p>
+                <h2 class="h4 mb-0 @(Model.NetBalance >= 0 ? "text-income" : "text-expense")">
+                    @Model.NetBalance.ToString("N2") ₺
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======= KATEGORİ DÖKÜMÜ ======= -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Kategori Dökümü</h5>
+        @if (!Model.CategorySummary.Any())
+        {
+            <p class="text-muted mb-0">Seçilen dönemde işlem bulunamadı.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kategori</th>
+                            <th class="text-end">Gelir</th>
+                            <th class="text-end">Gider</th>
+                            <th class="text-end">Net</th>
+                            <th class="text-center">İşlem Sayısı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.CategorySummary)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@c.CategoryName</td>
+                                <td class="text-end text-income">@c.Income.ToString("N2") ₺</td>
+                                <td class="text-end text-expense">@c.Expense.ToString("N2") ₺</td>
+                                <td class="text-end fw-semibold @(c.Net >= 0 ? "text-income" : "text-expense")">
+                                    @c.Net.ToString("N2") ₺
+                                </td>
+                                <td class="text-center">@c.TransactionCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ======= İŞLEM DETAYLARI ======= -->
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title mb-3">İşlem Detayları (@Model.Transactions.Count kayıt)</h5>
+        @if (!Model.Transactions.Any())
+        {
+            <p class="text-muted mb-0">Seçilen dönemde işlem bulunamadı.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Açıklama</th>
+                            <th>Kategori</th>
+                            <th>Tür</th>
+                            <th class="text-end">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in Model.Transactions)
+                        {
+                            var isIncome = t.TransactionTypeId == 1;
+                            <tr>
+                                <td>@t.Date.ToString("dd.MM.yyyy")</td>
+                                <td>@t.Description</td>
+                                <td>@t.Category?.Name</td>
+                                <td>
+                                    <span class="badge rounded-pill @(isIncome ? "badge-income" : "badge-expense")">
+                                        @t.TransactionType?.Name
+                                    </span>
+                                </td>
+                                <td class="text-end fw-semibold @(isIncome ? "text-income" : "text-expense")">
+                                    @(isIncome ? "+" : "-")@t.Amount.ToString("N2") ₺
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

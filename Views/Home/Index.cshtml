@@ -1,0 +1,226 @@
+@model GelirGiderPanel.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Panel";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">İşletme Paneli</h1>
+        <p class="text-muted mb-0">@DateTime.Now.ToString("dd MMMM yyyy, dddd") itibarıyla genel durum</p>
+    </div>
+    <a asp-controller="Transactions" asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Yeni İşlem
+    </a>
+</div>
+
+<!-- ======= ÖZET KARTLAR ======= -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Toplam Gelir</p>
+                        <h2 class="h3 text-income mb-0">@Model.TotalIncome.ToString("N2") ₺</h2>
+                    </div>
+                    <span class="badge badge-income rounded-pill p-2"><i class="bi bi-graph-up-arrow fs-5"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Toplam Gider</p>
+                        <h2 class="h3 text-expense mb-0">@Model.TotalExpense.ToString("N2") ₺</h2>
+                    </div>
+                    <span class="badge badge-expense rounded-pill p-2"><i class="bi bi-graph-down-arrow fs-5"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 @(Model.NetBalance < 0 ? "border-danger" : "")">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 small text-uppercase fw-semibold">Net Bakiye</p>
+                        <h2 class="h3 mb-0 @(Model.NetBalance >= 0 ? "text-income" : "text-expense")">
+                            @Model.NetBalance.ToString("N2") ₺
+                        </h2>
+                    </div>
+                    <span class="badge bg-light text-dark rounded-pill p-2"><i class="bi bi-wallet2 fs-5"></i></span>
+                </div>
+                <small class="text-muted">@Model.TransactionCount işlem kaydı</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======= GRAFİKLER ======= -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Gelir / Gider Dağılımı</h5>
+                <div style="max-height: 320px; display:flex; justify-content:center;">
+                    <canvas id="incomeExpenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Kategorilere Göre Dağılım</h5>
+                <canvas id="categoryChart" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======= SON İŞLEMLER ======= -->
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Son İşlemler</h5>
+            <a asp-controller="Transactions" asp-action="Index" class="small">Tümünü gör</a>
+        </div>
+
+        @if (!Model.RecentTransactions.Any())
+        {
+            <p class="text-muted mb-0">Henüz işlem kaydı yok. İlk kaydınızı eklemek için "Yeni İşlem" butonunu kullanın.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Açıklama</th>
+                            <th>Kategori</th>
+                            <th>Tür</th>
+                            <th class="text-end">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in Model.RecentTransactions)
+                        {
+                            var isIncome = t.TransactionTypeId == 1;
+                            <tr>
+                                <td>@t.Date.ToString("dd.MM.yyyy")</td>
+                                <td>@t.Description</td>
+                                <td>@t.Category?.Name</td>
+                                <td>
+                                    <span class="badge rounded-pill @(isIncome ? "badge-income" : "badge-expense")">
+                                        @t.TransactionType?.Name
+                                    </span>
+                                </td>
+                                <td class="text-end fw-semibold @(isIncome ? "text-income" : "text-expense")">
+                                    @(isIncome ? "+" : "-")@t.Amount.ToString("N2") ₺
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <script>
+        // Panelin renk paleti (CSS ile uyumlu)
+        const COLOR_INCOME  = '#0e7a5f';
+        const COLOR_EXPENSE = '#b3423a';
+
+        // TL formatlayıcı (tooltip'lerde kullanılır)
+        const tlFormat = (value) =>
+            new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value);
+
+        // ============ 1) DOUGHNUT: Gelir / Gider Dağılımı ============
+        async function loadIncomeExpenseChart() {
+            const response = await fetch('@Url.Action("GetIncomeExpenseSummary", "Home")');
+            const result = await response.json();
+
+            new Chart(document.getElementById('incomeExpenseChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: result.labels,
+                    datasets: [{
+                        data: result.data,
+                        backgroundColor: [COLOR_INCOME, COLOR_EXPENSE],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '62%',
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.label}: ${tlFormat(ctx.parsed)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============ 2) BAR: Kategorilere Göre Dağılım ============
+        async function loadCategoryChart() {
+            const response = await fetch('@Url.Action("GetCategorySummary", "Home")');
+            const result = await response.json();
+
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'bar',
+                data: {
+                    labels: result.labels,
+                    datasets: [
+                        {
+                            label: 'Gelir',
+                            data: result.incomeData,
+                            backgroundColor: COLOR_INCOME,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Gider',
+                            data: result.expenseData,
+                            backgroundColor: COLOR_EXPENSE,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.dataset.label}: ${tlFormat(ctx.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: (value) => tlFormat(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        loadIncomeExpenseChart();
+        loadCategoryChart();
+    </script>
+}

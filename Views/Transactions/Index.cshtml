@@ -1,0 +1,76 @@
+@model IEnumerable<GelirGiderPanel.Models.Transaction>
+@{
+    ViewData["Title"] = "İşlemler";
+    int? selectedTypeId = ViewBag.SelectedTypeId;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">İşlemler</h1>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Yeni İşlem
+    </a>
+</div>
+
+<!-- Filtre butonları -->
+<div class="btn-group mb-3" role="group" aria-label="İşlem türü filtresi">
+    <a asp-action="Index" class="btn btn-sm @(selectedTypeId == null ? "btn-dark" : "btn-outline-dark")">Tümü</a>
+    <a asp-action="Index" asp-route-typeId="1" class="btn btn-sm @(selectedTypeId == 1 ? "btn-dark" : "btn-outline-dark")">Gelirler</a>
+    <a asp-action="Index" asp-route-typeId="2" class="btn btn-sm @(selectedTypeId == 2 ? "btn-dark" : "btn-outline-dark")">Giderler</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <p class="text-muted mb-0">Bu filtreye uygun işlem bulunamadı.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Açıklama</th>
+                            <th>Kategori</th>
+                            <th>Tür</th>
+                            <th class="text-end">Tutar</th>
+                            <th class="text-end">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in Model)
+                        {
+                            var isIncome = t.TransactionTypeId == 1;
+                            <tr>
+                                <td>@t.Date.ToString("dd.MM.yyyy")</td>
+                                <td>@t.Description</td>
+                                <td>@t.Category?.Name</td>
+                                <td>
+                                    <span class="badge rounded-pill @(isIncome ? "badge-income" : "badge-expense")">
+                                        @t.TransactionType?.Name
+                                    </span>
+                                </td>
+                                <td class="text-end fw-semibold @(isIncome ? "text-income" : "text-expense")">
+                                    @(isIncome ? "+" : "-")@t.Amount.ToString("N2") ₺
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@t.Id" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bu işlemi silmek istediğinize emin misiniz?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
