@@ -1,0 +1,54 @@
+﻿@model GelirGiderPanel.Models.CariAccount
+@{
+    ViewData["Title"] = "Yeni Cari Hesap";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header text-white" style="background-color:#14231f;">
+                <span style="font-family:'Sora',sans-serif;">Yeni Cari Hesap</span>
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateAccount" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="Örn: Yılmaz Tekstil" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="2"
+                                  placeholder="Opsiyonel not"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="OpeningBalance" class="form-label"></label>
+                        <input asp-for="OpeningBalance" class="form-control" type="number" step="0.01" />
+                        <div class="form-text">
+                            Önceki dönemden devreden bakiye. Pozitif = müşteri size borçlu,
+                            negatif = siz müşteriye borçlusunuz. Excel içe aktarırken de girebilirsiniz.
+                        </div>
+                        <span asp-validation-for="OpeningBalance" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                        <button type="submit" class="btn text-white" style="background-color:#0e7a5f;">
+                            Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

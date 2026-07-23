@@ -17,6 +17,9 @@ namespace GelirGiderPanel.Data
 
         public DbSet<AppUser> Users => Set<AppUser>();
 
+        public DbSet<CariAccount> CariAccounts { get; set; }
+        public DbSet<CariTransaction> CariTransactions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -59,6 +62,25 @@ namespace GelirGiderPanel.Data
                 new Category { Id = 3, Name = "Kira",     Description = "İşyeri kira ödemeleri",       IsActive = true, CreatedAt = seedDate },
                 new Category { Id = 4, Name = "Personel", Description = "Maaş ve personel giderleri",  IsActive = true, CreatedAt = seedDate }
             );
+
+            modelBuilder.Entity<CariAccount>(entity =>
+            {
+                entity.Property(a => a.OpeningBalance).HasColumnType("decimal(18,2)");
+                entity.HasIndex(a => a.Name);
+            });
+
+            modelBuilder.Entity<CariTransaction>(entity =>
+            {
+                entity.Property(t => t.DebitAmount).HasColumnType("decimal(18,2)");
+                entity.Property(t => t.CreditAmount).HasColumnType("decimal(18,2)");
+                entity.Property(t => t.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.HasOne(t => t.CariAccount)
+                      .WithMany(a => a.Transactions)
+                      .HasForeignKey(t => t.CariAccountId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(t => t.Date);
+                entity.HasIndex(t => t.CariAccountId);
+            });
         }
     }
 }

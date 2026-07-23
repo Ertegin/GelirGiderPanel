@@ -149,6 +149,17 @@
                     <i class="bi bi-file-earmark-bar-graph"></i> Raporlar
                 </a>
             </li>
+            @if (User.IsInRole("Admin"))
+            {
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Cari" ? "active" : "")"
+                   asp-controller="Cari" asp-action="Index">
+                    <i class="bi bi-file-earmark-bar-graph"></i> Cari
+                </a>
+            </li>
+                
+            }
+           
 
             @if (User.Identity.IsAuthenticated)
             {

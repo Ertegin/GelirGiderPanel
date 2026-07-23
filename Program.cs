@@ -16,6 +16,17 @@ QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 // MVC
 builder.Services.AddControllersWithViews();
 
+/*Sayfaların önbelleklenmesini kapat
+ builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new ResponseCacheAttribute
+    {
+        NoStore = true,
+        Location = ResponseCacheLocation.None
+    });
+});
+ */
+
 // Entity Framework Core + MSSQL
 // Bağlantı dizesi appsettings.json içindeki "DefaultConnection" anahtarından okunur.
 builder.Services.AddDbContext<AppDbContext>(options =>

@@ -1,0 +1,598 @@
+﻿@model GelirGiderPanel.Controllers.CariLedgerVm
+@{
+    ViewData["Title"] = Model.Account.Name;
+    var categories = (List<GelirGiderPanel.Models.Category>)ViewBag.Categories;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0" style="font-family:'Sora',sans-serif;">@Model.Account.Name</h4>
+        @if (!string.IsNullOrEmpty(Model.Account.Description))
+        {
+            <div class="text-muted small">@Model.Account.Description</div>
+        }
+    </div>
+    <div class="d-flex gap-2">
+        @* <button type="button" class="btn text-white" style="background-color:#0e7a5f;"
+                data-bs-toggle="modal" data-bs-target="#hareketModal" onclick="cariResetForm()">
+            <i class="bi bi-plus-lg me-1"></i> Yeni Hareket
+        </button> *@
+        <button type="button" class="btn text-white" style="background-color:#14231f;"
+                data-bs-toggle="modal" data-bs-target="#topluModal">
+            <i class="bi bi-list-check me-1"></i> Toplu Giriş
+        </button>
+        <a asp-action="EditAccount" asp-route-id="@Model.Account.Id" class="btn btn-outline-secondary">
+            Hesabı Düzenle
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">← Hesaplar</a>
+    </div>
+</div>
+
+@if (TempData["Error"] is string err)
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Devir Bakiyesi</div>
+                <div class="fs-5 fw-semibold">@Model.Account.OpeningBalance.ToString("N2") ₺</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Toplam Borç (Giriş)</div>
+                <div class="fs-5 fw-semibold" style="color:#b3423a;">@Model.TotalDebit.ToString("N2") ₺</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Toplam Alacak (Ödeme)</div>
+                <div class="fs-5 fw-semibold" style="color:#0e7a5f;">@Model.TotalCredit.ToString("N2") ₺</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm h-100"
+             style="border-left:4px solid @(Model.CurrentBalance >= 0 ? "#0e7a5f" : "#b3423a") !important;">
+            <div class="card-body">
+                <div class="text-muted small">Güncel Bakiye</div>
+                <div class="fs-5 fw-bold"
+                     style="color:@(Model.CurrentBalance >= 0 ? "#0e7a5f" : "#b3423a");">
+                    @Model.CurrentBalance.ToString("N2") ₺
+                </div>
+                <div class="small text-muted">
+                    @(Model.CurrentBalance >= 0 ? "Müşteri borçlu" : "Müşteri alacaklı")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Rows.Any())
+{
+    <div class="alert alert-light border">
+        Bu hesapta henüz hareket yok.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead style="background-color:#f5f7f6;">
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Açıklama</th>
+                        <th class="text-end">Miktar</th>
+                        <th class="text-end">B.Fiyat</th>
+                        <th class="text-end">Borç (Giriş)</th>
+                        <th class="text-end">Alacak (Ödeme)</th>
+                        <th class="text-end">Bakiye</th>
+                        <th class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        var t = row.Transaction;
+                        <tr>
+                            <td class="text-nowrap">@t.Date.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @t.Description
+                                @if (!string.IsNullOrEmpty(t.DocumentNo))
+                                {
+                                    <span class="badge bg-light text-muted border">@t.DocumentNo</span>
+                                }
+                                @if (t.LinkedTransactionId.HasValue)
+                                {
+                                    <span class="badge" style="background-color:#14231f;"
+                                          title="Kasaya işlendi">₺ Kasa</span>
+                                }
+                                @if (!string.IsNullOrEmpty(t.Notes))
+                                {
+                                    <i class="bi bi-sticky text-muted" title="@t.Notes"></i>
+                                }
+                            </td>
+                            <td class="text-end text-muted">
+                                @(t.Quantity.HasValue ? $"{t.Quantity:N0} {t.Unit}" : "—")
+                            </td>
+                            <td class="text-end text-muted">@(t.UnitPrice?.ToString("N2") ?? "—")</td>
+                            <td class="text-end" style="color:#b3423a;">
+                                @(t.DebitAmount > 0 ? t.DebitAmount.ToString("N2") : "")
+                            </td>
+                            <td class="text-end" style="color:#0e7a5f;">
+                                @(t.CreditAmount > 0 ? t.CreditAmount.ToString("N2") : "")
+                            </td>
+                            <td class="text-end fw-semibold"
+                                style="color:@(row.RunningBalance >= 0 ? "#0e7a5f" : "#b3423a");">
+                                @row.RunningBalance.ToString("N2")
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                                        data-bs-toggle="modal" data-bs-target="#hareketModal"
+                                        data-id="@t.Id"
+                                        data-date="@t.Date.ToString("yyyy-MM-dd")"
+                                        data-docno="@t.DocumentNo"
+                                        data-desc="@t.Description"
+                                        data-notes="@t.Notes"
+                                        data-qty="@t.Quantity"
+                                        data-unit="@t.Unit"
+                                        data-price="@(t.UnitPrice?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))"
+                                        data-debit="@t.DebitAmount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-credit="@t.CreditAmount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-kasacat="@row.KasaCategoryId"
+                                        onclick="cariFillForm(this)">
+                                    Düzenleee
+                                </button>
+                                <form asp-action="DeleteTransaction" asp-route-id="@t.Id" method="post"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Bu hareket silinsin mi?@(t.LinkedTransactionId.HasValue ? " Kasadaki bağlı kayıt da silinecek." : "")');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0">Sil</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot style="background-color:#f5f7f6;">
+                    <tr class="fw-bold">
+                        <td colspan="4">TOPLAM</td>
+                        <td class="text-end" style="color:#b3423a;">@Model.TotalDebit.ToString("N2")</td>
+                        <td class="text-end" style="color:#0e7a5f;">@Model.TotalCredit.ToString("N2")</td>
+                        <td class="text-end"
+                            style="color:@(Model.CurrentBalance >= 0 ? "#0e7a5f" : "#b3423a");">
+                            @Model.CurrentBalance.ToString("N2")
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@* ==================== TOPLU GİRİŞ MODALI ==================== *@
+<div class="modal fade" id="topluModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:1rem; overflow:scroll;">
+            <form asp-action="BulkSave" method="post" id="bulkForm" onsubmit="return cariBulkPrepare();">
+                <input type="hidden" name="cariAccountId" value="@Model.Account.Id" />
+
+                <div class="modal-header border-0 pb-0">
+                    <div>
+                        <h5 class="modal-title fw-bold" style="font-family:'Sora',sans-serif;">
+                            Toplu Giriş
+                        </h5>
+                        <div class="text-muted small">
+                            @Model.Account.Name — Excel gibi alt alta girin. Son hücrede
+                            <kbd>Enter</kbd> yeni satır açar; tarih boş bırakılırsa üst satırdan alınır.
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="bulkTable">
+                            <thead style="background-color:#f5f7f6;">
+                                <tr>
+                                    <th style="width:140px;">Tarih</th>
+                                    <th>Açıklama <span class="text-danger">*</span></th>
+                                    <th style="width:90px;" class="text-end">Miktar</th>
+                                    <th style="width:110px;" class="text-end">B.Fiyat</th>
+                                    <th style="width:130px;" class="text-end">Tutar</th>
+                                    <th style="width:110px;">Yön</th>
+                                    <th style="width:40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulkBody"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cariBulkAddRow()">
+                        <i class="bi bi-plus-lg me-1"></i> Satır Ekle
+                    </button>
+                    <div class="small text-muted mt-2">
+                        Miktar ve birim fiyat girilirse tutar otomatik hesaplanır; ödeme satırlarında
+                        sadece tutarı yazıp yönü <strong>Alacak</strong> yapın. Açıklaması boş satırlar
+                        kaydedilmez.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 d-flex justify-content-between">
+                    <div class="fw-semibold" id="bulkSummary">0 satır</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            İptal
+                        </button>
+                        <button type="submit" class="btn text-white px-4" style="background-color:#0e7a5f;">
+                            <i class="bi bi-save me-1"></i> Tümünü Kaydet
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ==================== HAREKET MODALI ==================== *@
+<div class="modal fade" id="hareketModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:1rem;">
+            <form asp-action="SaveTransaction" method="post">
+                <input type="hidden" name="Id" id="fId" value="0" />
+                <input type="hidden" name="CariAccountId" value="@Model.Account.Id" />
+                <input type="hidden" name="EntryMode" id="fEntryMode" value="calc" />
+                <input type="hidden" name="Direction" id="fDirection" value="borc" />
+
+                <div class="modal-header border-0 pb-0">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="hareketModalTitle"
+                            style="font-family:'Sora',sans-serif;">
+                            Yeni Hareketi--1
+                        </h5>
+                        <div class="text-muted small">@Model.Account.Name</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Tarih</label>
+                            <input type="date" name="Date" id="fDate" class="form-control"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Belge / Fatura No</label>
+                            <input type="text" name="DocumentNo" id="fDocNo" class="form-control"
+                                   placeholder="Opsiyonel" maxlength="50" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Açıklama <span class="text-danger">*</span></label>
+                        <input type="text" name="Description" id="fDesc" class="form-control"
+                               placeholder="Örn: Kısa Kol Çizgili Keten, Pamuk Saten Bej Slim Fit"
+                               maxlength="300" required />
+                    </div>
+
+                    @* Mod seçici *@
+                    <div class="d-flex gap-2 mb-3 p-1 rounded-3" style="background-color:#f0f2f1;">
+                        <button type="button" id="modeCalcBtn"
+                                class="btn flex-fill text-start bg-white shadow-sm border"
+                                onclick="cariSetMode('calc')">
+                            <span class="fw-semibold"><i class="bi bi-calculator me-1"></i>Miktar × Fiyat</span>
+                            <div class="small text-muted">Otomatik hesap</div>
+                        </button>
+                        <button type="button" id="modeDirectBtn"
+                                class="btn flex-fill text-start border-0"
+                                onclick="cariSetMode('direct')">
+                            <span class="fw-semibold"><i class="bi bi-arrow-left-right me-1"></i>Direkt Borç/Alacak</span>
+                            <div class="small text-muted">Manuel giriş</div>
+                        </button>
+                    </div>
+
+                    @* Miktar × Fiyat modu *@
+                    <div id="calcSection" class="row g-3 mb-3">
+                        <div class="col-4">
+                            <label class="form-label">Miktar</label>
+                            <input type="number" name="Quantity" id="fQty" class="form-control"
+                                   min="0" step="1" placeholder="100" oninput="cariRecalc()" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Birim</label>
+                            <select name="Unit" id="fUnit" class="form-select">
+                                <option value="adet" selected>adet</option>
+                                <option value="metre">metre</option>
+                                <option value="kg">kg</option>
+                                <option value="top">top</option>
+                                <option value="paket">paket</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Birim Fiyat</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₺</span>
+                                <input type="number" name="UnitPrice" id="fPrice" class="form-control"
+                                       min="0" step="0.01" placeholder="0,00" oninput="cariRecalc()" />
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Direkt tutar modu *@
+                    <div id="directSection" class="mb-3" style="display:none;">
+                        <label class="form-label">Tutar</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₺</span>
+                            <input type="number" name="Amount" id="fAmount" class="form-control"
+                                   min="0" step="0.01" placeholder="0,00" oninput="cariRecalc()" />
+                        </div>
+                    </div>
+
+                    @* Hesaplanan tutar + yön *@
+                    <div class="rounded-3 p-3 mb-3 d-flex justify-content-between align-items-center"
+                         style="background-color:#eef4f2;">
+                        <div>
+                            <div class="small fw-semibold" style="color:#4a6a63; letter-spacing:.05em;">
+                                HESAPLANAN TUTAR
+                            </div>
+                            <div class="fs-5 fw-bold" id="calcDisplay">—</div>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" id="dirBorcBtn" class="btn btn-sm"
+                                    onclick="cariSetDirection('borc')">
+                                Borç
+                            </button>
+                            <button type="button" id="dirAlacakBtn" class="btn btn-sm"
+                                    onclick="cariSetDirection('alacak')">
+                                Alacak
+                            </button>
+                        </div>
+                    </div>
+                    @* <div class="small text-muted mb-3" id="dirHelp"></div> *@
+
+                    @* Kasa bağlantısı — dropdown *@
+                    @* <div class="rounded-3 p-3 mb-3" style="background-color:#f5f7f6;">
+                        <div class="fw-semibold mb-1">💰 İlgili Kasa (Opsiyonel)</div>
+                        <div class="small text-muted mb-2">
+                            Bu hareketi bir kasaya da işle. <strong>Alacak</strong> seçildiğinde kasaya
+                            <strong>GELİR</strong>, <strong>Borç</strong> seçildiğinde
+                            <strong>GİDER</strong> olarak yansır. Mal alış/satış için boş bırak.
+                        </div>
+                        <select name="KasaCategoryId" id="fKasaCat" class="form-select">
+                            <option value="" selected>— Kasaya işleme (sadece cari hareketi) —</option>
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </select>
+                    </div> *@
+
+                    @* Notlar *@
+                    <div class="mb-2">
+                        <label class="form-label">Notlar</label>
+                        <textarea name="Notes" id="fNotes" class="form-control" rows="2"
+                                  maxlength="500" placeholder="Bu hareket hakkında detay…"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        İptal
+                    </button>
+                    <button type="submit" class="btn text-white px-4" style="background-color:#14231f;">
+                        <i class="bi bi-save me-1"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Renkler: Borç kırmızı (müşterinin borcu artar), Alacak yeşil (ödeme alındı)
+        const BORC_COLOR = '#b3423a', ALACAK_COLOR = '#0e7a5f';
+
+        function cariSetMode(mode) {
+            document.getElementById('fEntryMode').value = mode;
+            const calc = mode === 'calc';
+            document.getElementById('calcSection').style.display = calc ? 'flex' : 'none';
+            document.getElementById('directSection').style.display = calc ? 'none' : 'block';
+
+            const on = 'btn flex-fill text-start bg-white shadow-sm border';
+            const off = 'btn flex-fill text-start border-0';
+            document.getElementById('modeCalcBtn').className = calc ? on : off;
+            document.getElementById('modeDirectBtn').className = calc ? off : on;
+            cariRecalc();
+        }
+
+        function cariSetDirection(dir) {
+            document.getElementById('fDirection').value = dir;
+            const borc = dir === 'borc';
+            const b = document.getElementById('dirBorcBtn');
+            const a = document.getElementById('dirAlacakBtn');
+            b.className = 'btn btn-sm ' + (borc ? 'text-white' : 'btn-light border');
+            a.className = 'btn btn-sm ' + (!borc ? 'text-white' : 'btn-light border');
+            b.style.backgroundColor = borc ? BORC_COLOR : '';
+            a.style.backgroundColor = !borc ? ALACAK_COLOR : '';
+            document.getElementById('dirHelp').textContent = borc
+                ? 'Borç: mal/hizmet teslimi — müşterinin borcunu artırır.'
+                : 'Alacak: alınan ödeme — müşterinin borcunu azaltır.';
+            cariRecalc();
+        }
+
+        function cariRecalc() {
+            const mode = document.getElementById('fEntryMode').value;
+            let amount = 0;
+            if (mode === 'calc') {
+                const q = parseFloat(document.getElementById('fQty').value);
+                const p = parseFloat(document.getElementById('fPrice').value);
+                if (!isNaN(q) && !isNaN(p)) amount = q * p;
+            } else {
+                const a = parseFloat(document.getElementById('fAmount').value);
+                if (!isNaN(a)) amount = a;
+            }
+            const disp = document.getElementById('calcDisplay');
+            if (amount > 0) {
+                disp.textContent = '₺' + amount.toLocaleString('tr-TR',
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                disp.style.color = document.getElementById('fDirection').value === 'borc'
+                    ? BORC_COLOR : ALACAK_COLOR;
+            } else {
+                disp.textContent = '—';
+                disp.style.color = '';
+            }
+        }
+
+        function cariResetForm() {
+            document.getElementById('hareketModalTitle').textContent = 'Yeni Hareket111';
+            document.getElementById('fId').value = '0';
+            document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+            ['fDocNo', 'fDesc', 'fQty', 'fPrice', 'fAmount', 'fNotes'].forEach(
+                id => document.getElementById(id).value = '');
+            document.getElementById('fUnit').value = 'adet';
+            document.getElementById('fKasaCat').value = '';
+            cariSetMode('calc');
+            cariSetDirection('borc');
+        }
+
+        function cariFillForm(btn) {
+            // cariResetForm();
+            document.getElementById('hareketModalTitle').textContent = 'Hareketi Düzenle';
+            const d = btn.dataset;
+            document.getElementById('fId').value = d.id;
+            document.getElementById('fDate').value = d.date;
+            document.getElementById('fDocNo').value = d.docno || '';
+            document.getElementById('fDesc').value = d.desc || '';
+            document.getElementById('fNotes').value = d.notes || '';
+
+            const hasQty = d.qty && d.price;
+            cariSetMode(hasQty ? 'calc' : 'direct');
+            if (hasQty) {
+                document.getElementById('fQty').value = d.qty;
+                document.getElementById('fUnit').value = d.unit || 'adet';
+                document.getElementById('fPrice').value = d.price;
+            } else {
+                document.getElementById('fAmount').value =
+                    parseFloat(d.debit) > 0 ? d.debit : d.credit;
+            }
+            cariSetDirection(parseFloat(d.credit) > 0 ? 'alacak' : 'borc');
+
+            if (d.kasacat) document.getElementById('fKasaCat').value = d.kasacat;
+            cariRecalc();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { cariSetDirection('borc'); });
+
+        // ==================== TOPLU GİRİŞ ====================
+        function cariBulkAddRow(focus = true) {
+            const body = document.getElementById('bulkBody');
+            const prevDate = body.lastElementChild
+                ? body.lastElementChild.querySelector('.b-date').value : '';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="date" class="form-control form-control-sm b-date" value="${prevDate}"></td>
+                <td><input type="text" class="form-control form-control-sm b-desc" maxlength="300"
+                           placeholder="Ürün / Alınan Ödeme"></td>
+                <td><input type="number" class="form-control form-control-sm text-end b-qty"
+                           min="0" step="1"></td>
+                <td><input type="number" class="form-control form-control-sm text-end b-price"
+                           min="0" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm text-end b-amount"
+                           min="0" step="0.01"></td>
+                <td><select class="form-select form-select-sm b-dir">
+                        <option value="borc">Borç</option>
+                        <option value="alacak">Alacak</option>
+                    </select></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"
+                            onclick="this.closest('tr').remove(); cariBulkSummary();">×</button>
+                </td>`;
+            body.appendChild(tr);
+
+            // Miktar × fiyat → tutar; tutar rengini yöne göre boya
+            const qty = tr.querySelector('.b-qty'), price = tr.querySelector('.b-price'),
+                  amount = tr.querySelector('.b-amount'), dir = tr.querySelector('.b-dir');
+            function calc() {
+                const q = parseFloat(qty.value), p = parseFloat(price.value);
+                if (!isNaN(q) && !isNaN(p) && q > 0 && p > 0) amount.value = (q * p).toFixed(2);
+                paint();
+            }
+            function paint() {
+                amount.style.color = dir.value === 'borc' ? BORC_COLOR : ALACAK_COLOR;
+            }
+            qty.addEventListener('input', calc);
+            price.addEventListener('input', calc);
+            dir.addEventListener('change', paint);
+            amount.addEventListener('input', paint);
+            paint();
+
+            // Enter: satırın son alanındaysa yeni satır aç, değilse sonraki alana geç
+            tr.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('keydown', e => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const fields = Array.from(tr.querySelectorAll('input, select'));
+                    const idx = fields.indexOf(el);
+                    if (idx < fields.length - 1) { fields[idx + 1].focus(); return; }
+                    cariBulkAddRow();
+                });
+            });
+
+            cariBulkSummary();
+            if (focus) tr.querySelector(prevDate ? '.b-desc' : '.b-date').focus();
+        }
+
+        function cariBulkSummary() {
+            const rows = document.querySelectorAll('#bulkBody tr');
+            let count = 0, borc = 0, alacak = 0;
+            rows.forEach(tr => {
+                if (!tr.querySelector('.b-desc').value.trim()) return;
+                const a = parseFloat(tr.querySelector('.b-amount').value);
+                if (isNaN(a) || a <= 0) return;
+                count++;
+                if (tr.querySelector('.b-dir').value === 'borc') borc += a; else alacak += a;
+            });
+            document.getElementById('bulkSummary').textContent =
+                `${count} satır — Borç: ${borc.toLocaleString('tr-TR', {minimumFractionDigits: 2})} ₺, ` +
+                `Alacak: ${alacak.toLocaleString('tr-TR', {minimumFractionDigits: 2})} ₺`;
+        }
+
+        // Submit öncesi: dolu satırları rows[i].Alan adlarıyla isimlendir
+        function cariBulkPrepare() {
+            const rows = Array.from(document.querySelectorAll('#bulkBody tr'))
+                .filter(tr => tr.querySelector('.b-desc').value.trim());
+            if (rows.length === 0) {
+                alert('Kaydedilecek satır yok. En az bir satıra açıklama ve tutar girin.');
+                return false;
+            }
+            rows.forEach((tr, i) => {
+                tr.querySelector('.b-date').name   = `rows[${i}].Date`;
+                tr.querySelector('.b-desc').name   = `rows[${i}].Description`;
+                tr.querySelector('.b-qty').name    = `rows[${i}].Quantity`;
+                tr.querySelector('.b-price').name  = `rows[${i}].UnitPrice`;
+                tr.querySelector('.b-amount').name = `rows[${i}].Amount`;
+                tr.querySelector('.b-dir').name    = `rows[${i}].Direction`;
+            });
+            return true;
+        }
+
+        // Toplu giriş modalı açılınca canlı özet dinleyicisi + başlangıç satırları
+        document.getElementById('topluModal').addEventListener('shown.bs.modal', () => {
+            const body = document.getElementById('bulkBody');
+            if (body.children.length === 0) {
+                for (let i = 0; i < 5; i++) cariBulkAddRow(false);
+                body.querySelector('.b-date').focus();
+            }
+        });
+        document.getElementById('bulkBody').addEventListener('input', cariBulkSummary);
+        document.getElementById('bulkBody').addEventListener('change', cariBulkSummary);
+    </script>
+}
