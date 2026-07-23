@@ -1,6 +1,8 @@
 @model GelirGiderPanel.ViewModels.DashboardViewModel
 @{
     ViewData["Title"] = "Panel";
+    DateTime? fStart = ViewBag.StartDate as DateTime?;
+    DateTime? fEnd = ViewBag.EndDate as DateTime?;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -11,6 +13,40 @@
     <a asp-controller="Transactions" asp-action="Create" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i> Yeni İşlem
     </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Index" id="dashFilterForm"
+              class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label class="form-label small text-muted mb-1">Başlangıç</label>
+                <input type="date" name="startDate" id="dashStart" class="form-control form-control-sm"
+                       value="@(fStart?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1">Bitiş</label>
+                <input type="date" name="endDate" id="dashEnd" class="form-control form-control-sm"
+                       value="@(fEnd?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <button type="submit" class="btn btn-sm text-white" style="background-color:#0e7a5f;">
+                Uygula
+            </button>
+            <div class="vr d-none d-md-block"></div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary" onclick="dashPeriod('buAy')">Bu Ay</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="dashPeriod('gecenAy')">Geçen Ay</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="dashPeriod('buYil')">Bu Yıl</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="dashPeriod('tumu')">Tümü</button>
+            </div>
+            @if (fStart.HasValue || fEnd.HasValue)
+            {
+                <span class="badge ms-auto" style="background-color:#14231f;">
+                    Dönem: @(fStart?.ToString("dd.MM.yyyy") ?? "…") – @(fEnd?.ToString("dd.MM.yyyy") ?? "…")
+                </span>
+            }
+        </form>
+    </div>
 </div>
 
 <!-- ======= ÖZET KARTLAR ======= -->
@@ -131,22 +167,46 @@
     </div>
 </div>
 
+
 @section Scripts {
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
+
     <script>
+           function dashPeriod(p) {
+            const now = new Date();
+            const f = (d) => d.toISOString().slice(0, 10);
+            const s = document.getElementById('dashStart');
+            const e = document.getElementById('dashEnd');
+
+            if (p === 'buAy') {
+                s.value = f(new Date(now.getFullYear(), now.getMonth(), 1));
+                e.value = f(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+            } else if (p === 'gecenAy') {
+                s.value = f(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+                e.value = f(new Date(now.getFullYear(), now.getMonth(), 0));
+            } else if (p === 'buYil') {
+                s.value = f(new Date(now.getFullYear(), 0, 1));
+                e.value = f(new Date(now.getFullYear(), 11, 31));
+            } else { // tumu
+                s.value = ''; e.value = '';
+            }
+            document.getElementById('dashFilterForm').submit();
+        }
+
         // Panelin renk paleti (CSS ile uyumlu)
         const COLOR_INCOME  = '#0e7a5f';
         const COLOR_EXPENSE = '#b3423a';
-
+        const dashQs = window.location.search;
         // TL formatlayıcı (tooltip'lerde kullanılır)
         const tlFormat = (value) =>
             new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value);
 
         // ============ 1) DOUGHNUT: Gelir / Gider Dağılımı ============
         async function loadIncomeExpenseChart() {
-            const response = await fetch('@Url.Action("GetIncomeExpenseSummary", "Home")');
+            const response = await fetch('/Home/GetIncomeExpenseSummary' + dashQs);
+            fetch('/Home/GetIncomeExpenseSummary' + dashQs)
             const result = await response.json();
 
             new Chart(document.getElementById('incomeExpenseChart'), {
@@ -177,8 +237,9 @@
         }
 
         // ============ 2) BAR: Kategorilere Göre Dağılım ============
+        //  fetch('@Url.Action("GetCategorySummary", "Home")');
         async function loadCategoryChart() {
-            const response = await fetch('@Url.Action("GetCategorySummary", "Home")');
+            const response = await fetch('/Home/GetCategorySummary' + dashQs);
             const result = await response.json();
 
             new Chart(document.getElementById('categoryChart'), {

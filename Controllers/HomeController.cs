@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using GelirGiderPanel.Data;
 using GelirGiderPanel.Enums;
 using GelirGiderPanel.ViewModels;
@@ -26,28 +27,43 @@ namespace GelirGiderPanel.Controllers
         }
 
         // ============ DASHBOARD ============
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(DateTime? startDate, DateTime? endDate)
         {
+            // Ters girilirse takas (Reports'taki NormalizeDates ile aynı mantık)
+            if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+                (startDate, endDate) = (endDate, startDate);
+
+            var query = _context.Transactions.AsNoTracking().AsQueryable();
+            if (startDate.HasValue) query = query.Where(t => t.Date >= startDate.Value.Date);
+            if (endDate.HasValue) query = query.Where(t => t.Date <= endDate.Value.Date);
+
             var model = new DashboardViewModel
             {
-                TotalIncome = await _context.Transactions
-                    .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gelir)
-                    .SumAsync(t => (decimal?)t.Amount) ?? 0,
+                //TotalIncome = await _context.Transactions
+                //    .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gelir)
+                //    .SumAsync(t => (decimal?)t.Amount) ?? 0,
 
-                TotalExpense = await _context.Transactions
-                    .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gider)
-                    .SumAsync(t => (decimal?)t.Amount) ?? 0,
+                TotalIncome = await query
+        .Where(t => t.TransactionTypeId == (int)TransactionTypeEnum.Gelir)
+        .SumAsync(t => (decimal?)t.Amount) ?? 0,
 
-                TransactionCount = await _context.Transactions.CountAsync(),
+                TotalExpense = await query
+        .Where(t => t.TransactionTypeId == (int)TransactionTypeEnum.Gider)
+        .SumAsync(t => (decimal?)t.Amount) ?? 0,
 
-                RecentTransactions = await _context.Transactions
-                    .Include(t => t.Category)
-                    .Include(t => t.TransactionType)
-                    .OrderByDescending(t => t.Date)
-                    .ThenByDescending(t => t.Id)
-                    .Take(5)
-                    .ToListAsync()
+                //TransactionCount = await _context.Transactions.CountAsync(),
+                TransactionCount = await query.CountAsync(),
+
+
+                RecentTransactions = await query
+        .Include(t => t.Category)
+        .Include(t => t.TransactionType)
+        .OrderByDescending(t => t.Date).ThenByDescending(t => t.Id)
+        .Take(5)
+        .ToListAsync()
             };
+            ViewBag.StartDate = startDate;
+            ViewBag.EndDate = endDate;
 
             return View(model);
         }
@@ -55,13 +71,21 @@ namespace GelirGiderPanel.Controllers
         // ============ GRAFİK 1: Gelir/Gider Dağılımı (Doughnut) ============
         // GET /Home/GetIncomeExpenseSummary
         [HttpGet]
-        public async Task<IActionResult> GetIncomeExpenseSummary()
+        public async Task<IActionResult> GetIncomeExpenseSummary(DateTime? startDate, DateTime? endDate)
         {
-            var income = await _context.Transactions
+
+            if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+                (startDate, endDate) = (endDate, startDate);
+
+            var query = _context.Transactions.AsNoTracking().AsQueryable();
+            if (startDate.HasValue) query = query.Where(t => t.Date >= startDate.Value.Date);
+            if (endDate.HasValue) query = query.Where(t => t.Date <= endDate.Value.Date);
+
+            var income = await query
                 .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gelir)
                 .SumAsync(t => (decimal?)t.Amount) ?? 0;
 
-            var expense = await _context.Transactions
+            var expense = await query
                 .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gider)
                 .SumAsync(t => (decimal?)t.Amount) ?? 0;
 
@@ -76,28 +100,34 @@ namespace GelirGiderPanel.Controllers
         // GET /Home/GetCategorySummary
         // Her kategori için gelir ve gider toplamlarını ayrı ayrı döner.
         [HttpGet]
-        public async Task<IActionResult> GetCategorySummary()
+        public async Task<IActionResult> GetCategorySummary(DateTime? startDate, DateTime? endDate)
         {
-            var summary = await _context.Categories
-                .Where(c => c.IsActive)
-                .Select(c => new
+            if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+                (startDate, endDate) = (endDate, startDate);
+
+            var query = _context.Transactions.AsNoTracking().AsQueryable();
+            if (startDate.HasValue) query = query.Where(t => t.Date >= startDate.Value.Date);
+            if (endDate.HasValue) query = query.Where(t => t.Date <= endDate.Value.Date);
+
+            // 3) Kategoriye göre grupla, her grubun içinde gelir ve gideri ayrı topla
+            var summary = await query
+                .GroupBy(t => t.Category!.Name)
+                .Select(g => new
                 {
-                    category = c.Name,
-                    income = c.Transactions
-                        .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gelir)
-                        .Sum(t => (decimal?)t.Amount) ?? 0,
-                    expense = c.Transactions
-                        .Where(t => t.TransactionTypeId == (int)TransactionStatus.Gider)
-                        .Sum(t => (decimal?)t.Amount) ?? 0
+                    Category = g.Key,
+                    Income = g.Where(t => t.TransactionTypeId == (int)TransactionTypeEnum.Gelir)
+                              .Sum(t => (decimal?)t.Amount) ?? 0,
+                    Expense = g.Where(t => t.TransactionTypeId == (int)TransactionTypeEnum.Gider)
+                              .Sum(t => (decimal?)t.Amount) ?? 0
                 })
-                .OrderBy(x => x.category)
+                .OrderByDescending(x => x.Income + x.Expense)
                 .ToListAsync();
 
             return Json(new
             {
-                labels = summary.Select(s => s.category),
-                incomeData = summary.Select(s => s.income),
-                expenseData = summary.Select(s => s.expense)
+                labels = summary.Select(s => s.Category),
+                incomeData = summary.Select(s => s.Income),
+                expenseData = summary.Select(s => s.Expense)
             });
         }
     }

@@ -28,10 +28,59 @@
     </div>
 </div>
 
-@if (TempData["Error"] is string err)
+@* @if (TempData["Error"] is string err)
 {
-    <div class="alert alert-danger">@err</div>
-}
+    <div class="alert alert-danger">@err  11</div>
+} *@
+
+
+@* ==================== TARİH FİLTRESİ + DIŞA AKTARMA ==================== *@
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Details" asp-route-id="@Model.Account.Id" id="cariFilterForm"
+              class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label class="form-label small text-muted mb-1">Başlangıç</label>
+                <input type="date" name="startDate" id="cariStart" class="form-control form-control-sm"
+                       value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1">Bitiş</label>
+                <input type="date" name="endDate" id="cariEnd" class="form-control form-control-sm"
+                       value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <button type="submit" class="btn btn-sm text-white" style="background-color:#0e7a5f;">
+                Uygula
+            </button>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary" onclick="cariPeriod('buAy')">Bu Ay</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="cariPeriod('gecenAy')">Geçen Ay</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="cariPeriod('buYil')">Bu Yıl</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="cariPeriod('tumu')">Tümü</button>
+            </div>
+            <div class="vr d-none d-md-block"></div>
+            <a asp-action="ExportExcel" asp-route-id="@Model.Account.Id"
+               asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
+               asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))"
+               class="btn btn-sm text-white" style="background-color:#0e7a5f;">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </a>
+            <a asp-action="ExportPdf" asp-route-id="@Model.Account.Id"
+               asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
+               asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))"
+               class="btn btn-sm text-white" style="background-color:#b3423a;">
+                <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+            </a>
+            @if (Model.IsFiltered)
+            {
+                <span class="badge ms-auto" style="background-color:#14231f;">
+                    Dönem: @(Model.StartDate?.ToString("dd.MM.yyyy") ?? "…") – @(Model.EndDate?.ToString("dd.MM.yyyy") ?? "…")
+                </span>
+            }
+        </form>
+    </div>
+</div>
+
 
 <div class="row g-3 mb-4">
     <div class="col-md-3 col-6">
@@ -399,6 +448,28 @@ else
     <script>
         // Renkler: Borç kırmızı (müşterinin borcu artar), Alacak yeşil (ödeme alındı)
         const BORC_COLOR = '#b3423a', ALACAK_COLOR = '#0e7a5f';
+
+            // ==================== TARİH FİLTRESİ ====================
+    function cariPeriod(p) {
+        const now = new Date();
+        const f = (d) => d.toISOString().slice(0, 10);
+        const s = document.getElementById('cariStart');
+        const e = document.getElementById('cariEnd');
+
+        if (p === 'buAy') {
+            s.value = f(new Date(now.getFullYear(), now.getMonth(), 1));
+            e.value = f(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+        } else if (p === 'gecenAy') {
+            s.value = f(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+            e.value = f(new Date(now.getFullYear(), now.getMonth(), 0));
+        } else if (p === 'buYil') {
+            s.value = f(new Date(now.getFullYear(), 0, 1));
+            e.value = f(new Date(now.getFullYear(), 11, 31));
+        } else { // tumu
+            s.value = ''; e.value = '';
+        }
+        document.getElementById('cariFilterForm').submit();
+    }
 
         function cariSetMode(mode) {
             document.getElementById('fEntryMode').value = mode;
