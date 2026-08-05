@@ -417,14 +417,14 @@ namespace GelirGiderPanel.Controllers
             }
 
             // Toplam satırı
-            ws.Cell(row, 2).Value = "TOPLAM";
+           /* ws.Cell(row, 2).Value = "TOPLAM";
             ws.Cell(row, 5).FormulaA1 = $"SUM(E{headerRow + 1}:E{row - 1})";
             ws.Cell(row, 6).FormulaA1 = $"SUM(F{headerRow + 1}:F{row - 1})";
             ws.Cell(row, 7).Value = vm.CurrentBalance;
             var totalRange = ws.Range(row, 1, row, 7);
             totalRange.Style.Font.SetBold();
             totalRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#f5f7f6");
-            ws.Range(row, 5, row, 7).Style.NumberFormat.Format = "#,##0.00";
+            ws.Range(row, 5, row, 7).Style.NumberFormat.Format = "#,##0.00";*/
 
             ws.SheetView.FreezeRows(headerRow);
             ws.Range(headerRow, 1, row - 1, 7).SetAutoFilter();

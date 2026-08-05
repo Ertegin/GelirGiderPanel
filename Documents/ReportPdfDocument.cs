@@ -65,7 +65,7 @@ namespace GelirGiderPanel.Documents
 
                     row.ConstantItem(140).AlignRight().Column(c =>
                     {
-                        c.Item().AlignRight().Text("DefterPanel")
+                        c.Item().AlignRight().Text("Güven Tekstil")
                             .FontSize(12).Bold().FontColor(ColorIncome);
                         c.Item().AlignRight().Text($"Oluşturulma: {DateTime.Now:dd.MM.yyyy HH:mm}")
                             .FontSize(7).FontColor(Colors.Grey.Darken1);

@@ -58,21 +58,21 @@ namespace GelirGiderPanel.Documents
                 });
 
                 // Özet kutuları
-                col.Item().PaddingTop(10).Row(row =>
-                {
-                    SummaryBox(row.RelativeItem(),
-                        _vm.IsFiltered ? "Dönem Başı" : "Devir",
-                        _vm.PeriodOpeningBalance, DarkColor);
-                    row.ConstantItem(8);
-                    SummaryBox(row.RelativeItem(), "Toplam Borç", _vm.TotalDebit, DebitColor);
-                    row.ConstantItem(8);
-                    SummaryBox(row.RelativeItem(), "Toplam Alacak", _vm.TotalCredit, CreditColor);
-                    row.ConstantItem(8);
-                    SummaryBox(row.RelativeItem(),
-                        _vm.IsFiltered ? "Dönem Sonu" : "Güncel Bakiye",
-                        _vm.CurrentBalance,
-                        _vm.CurrentBalance >= 0 ? CreditColor : DebitColor);
-                });
+                //col.Item().PaddingTop(10).Row(row =>
+                //{
+                //    SummaryBox(row.RelativeItem(),
+                //        _vm.IsFiltered ? "Dönem Başı" : "Devir",
+                //        _vm.PeriodOpeningBalance, DarkColor);
+                //    row.ConstantItem(8);
+                //    SummaryBox(row.RelativeItem(), "Toplam Borç", _vm.TotalDebit, DebitColor);
+                //    row.ConstantItem(8);
+                //    SummaryBox(row.RelativeItem(), "Toplam Alacak", _vm.TotalCredit, CreditColor);
+                //    row.ConstantItem(8);
+                //    SummaryBox(row.RelativeItem(),
+                //        _vm.IsFiltered ? "Dönem Sonu" : "Güncel Bakiye",
+                //        _vm.CurrentBalance,
+                //        _vm.CurrentBalance >= 0 ? CreditColor : DebitColor);
+                //});
 
                 col.Item().PaddingTop(10);
             });
@@ -138,14 +138,14 @@ namespace GelirGiderPanel.Documents
                 }
 
                 // Toplam satırı
-                table.Cell().ColumnSpan(4).Background(DarkColor).Padding(4)
-                    .Text("TOPLAM").FontColor("#ffffff").Bold();
-                table.Cell().Background(DarkColor).Padding(4).AlignRight()
-                    .Text($"{_vm.TotalDebit:N2}").FontColor("#ffffff").Bold();
-                table.Cell().Background(DarkColor).Padding(4).AlignRight()
-                    .Text($"{_vm.TotalCredit:N2}").FontColor("#ffffff").Bold();
-                table.Cell().Background(DarkColor).Padding(4).AlignRight()
-                    .Text($"{_vm.CurrentBalance:N2} TL").FontColor("#ffffff").Bold();
+                //table.Cell().ColumnSpan(4).Background(DarkColor).Padding(4)
+                //    .Text("TOPLAM").FontColor("#ffffff").Bold();
+                //table.Cell().Background(DarkColor).Padding(4).AlignRight()
+                //    .Text($"{_vm.TotalDebit:N2}").FontColor("#ffffff").Bold();
+                //table.Cell().Background(DarkColor).Padding(4).AlignRight()
+                //    .Text($"{_vm.TotalCredit:N2}").FontColor("#ffffff").Bold();
+                //table.Cell().Background(DarkColor).Padding(4).AlignRight()
+                //    .Text($"{_vm.CurrentBalance:N2} TL").FontColor("#ffffff").Bold();
             });
         }
     }
