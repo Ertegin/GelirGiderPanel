@@ -117,7 +117,7 @@
     <nav class="sidebar">
         <a class="brand" asp-controller="Home" asp-action="Index">
             <span class="logo-badge"><i class="bi bi-journal-check"></i></span>
-            Bütçe Hesap<span style="color:#5fbfa4">Panel</span>
+            Bütçe Hesap<span style="color:#5fbfa4">Guven</span>
         </a>
 
         <ul class="nav flex-column">
@@ -162,7 +162,13 @@
             <a class="nav-link" asp-controller="Salaries" asp-action="Index">
                 <i class="bi bi-people me-2"></i> Maaşlar
             </a>
-           
+            @if (User.IsInRole("Admin"))
+            {
+                <a class="nav-link" asp-controller="LoginLogs" asp-action="Index">
+                    <i class="bi bi-clock-history me-2"></i> Giriş Kayıtları
+                </a>
+            }
+            
 
             @if (User.Identity.IsAuthenticated)
             {

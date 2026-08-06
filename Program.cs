@@ -42,6 +42,21 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     opt.ExpireTimeSpan = TimeSpan.FromHours(1); //Cookie) varsayılan yaşam süresini
     opt.SlidingExpiration = true; //aktifliğine bağlı olarak oturum süresini dinamik olarak uzatan
 
+    opt.Events.OnSignedIn = async context =>
+    {
+        // Kullanıcı giriş yaptıktan sonra yapılacak işlemler
+        // Örneğin, kullanıcı bilgilerini güncelleme veya loglama
+        var db = context.HttpContext.RequestServices
+            .GetRequiredService<GelirGiderPanel.Data.AppDbContext>();
+
+        db.LoginLogs.Add(new GelirGiderPanel.Models.LoginLog
+        {
+            UserName = context.Principal?.Identity?.Name ?? "Bilinmiyor",
+            IpAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString(),
+            LoginTime = DateTime.Now
+        });
+        await db.SaveChangesAsync();
+    };
 });
 
 builder.Services.AddAuthorization(opt =>

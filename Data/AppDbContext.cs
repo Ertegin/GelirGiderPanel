@@ -22,9 +22,16 @@ namespace GelirGiderPanel.Data
 
         public DbSet<Salary> Salaries { get; set; }
 
+        public DbSet<LoginLog> LoginLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<LoginLog>(entity =>
+            {
+                entity.HasIndex(l => l.LoginTime);
+            });
 
             modelBuilder.Entity<Salary>(entity =>
             {

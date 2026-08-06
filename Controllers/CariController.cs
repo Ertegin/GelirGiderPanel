@@ -9,7 +9,7 @@ using QuestPDF.Fluent;
 
 namespace GelirGiderPanel.Controllers
 {
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize(Policy = "GuvenPolicy")]
     public class CariController : Controller
     {
         AppDbContext _context;

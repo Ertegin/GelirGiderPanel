@@ -1,0 +1,76 @@
+﻿@model List<GelirGiderPanel.Models.LoginLog>
+@{
+    ViewData["Title"] = "Giriş Kayıtları";
+    DateTime? fStart = ViewBag.StartDate as DateTime?;
+    DateTime? fEnd = ViewBag.EndDate as DateTime?;
+    string? search = ViewBag.Search as string;
+    int totalCount = ViewBag.TotalCount ?? 0;
+}
+
+<h4 class="mb-3" style="font-family:'Sora',sans-serif;">Giriş Kayıtları</h4>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Index" class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label class="form-label small text-muted mb-1">Başlangıç</label>
+                <input type="date" name="startDate" class="form-control form-control-sm"
+                       value="@(fStart?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1">Bitiş</label>
+                <input type="date" name="endDate" class="form-control form-control-sm"
+                       value="@(fEnd?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1">Kullanıcı</label>
+                <input type="text" name="search" class="form-control form-control-sm"
+                       placeholder="Kullanıcı adı ara…" value="@search" />
+            </div>
+            <button type="submit" class="btn btn-sm text-white" style="background-color:#0e7a5f;">
+                Filtrele
+            </button>
+            @if (fStart.HasValue || fEnd.HasValue || !string.IsNullOrEmpty(search))
+            {
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Temizle</a>
+            }
+            <span class="badge ms-auto" style="background-color:#14231f;">
+                @totalCount kayıt@(totalCount > 500 ? " (son 500 gösteriliyor)" : "")
+            </span>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-light border">
+        Kayıt bulunamadı. Giriş kayıtları, log sistemi kurulduktan SONRA yapılan
+        oturum açmalarda oluşmaya başlar.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead style="background-color:#f5f7f6;">
+                    <tr>
+                        <th>Kullanıcı</th>
+                        <th>Giriş Zamanı</th>
+                        <th>IP Adresi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@log.UserName</td>
+                            <td class="text-nowrap">@log.LoginTime.ToString("dd.MM.yyyy HH:mm:ss")</td>
+                            <td class="text-muted">@(log.IpAddress ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
