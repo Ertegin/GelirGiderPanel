@@ -11,12 +11,18 @@ namespace GelirGiderPanel.Documents
     public class SalaryPdfDocument : IDocument
     {
         private readonly List<Salary> _salaries;
+        private readonly string? _filter;
 
         private const string DarkColor = "#14231f";
         private const string ExpenseColor = "#b3423a";
         private const string BgColor = "#f5f7f6";
 
-        public SalaryPdfDocument(List<Salary> salaries) => _salaries = salaries;
+       
+        public SalaryPdfDocument(List<Salary> salaries, string? filter = null)
+        {
+            _salaries = salaries;
+            _filter = filter;
+        }
 
         public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
 
@@ -46,8 +52,18 @@ namespace GelirGiderPanel.Documents
             {
                 col.Item().Row(row =>
                 {
-                    row.RelativeItem().Text("Maaş Listesi")
-                        .FontSize(16).Bold().FontColor(DarkColor);
+                    //row.RelativeItem().Text("Maaş Listesi")
+                    //    .FontSize(16).Bold().FontColor(DarkColor);
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Maaş Listesi")
+                            .FontSize(16).Bold().FontColor(DarkColor);
+                        if (!string.IsNullOrEmpty(_filter))
+                        {
+                            c.Item().Text($"Filtre: \"{_filter}\"")
+                                .FontSize(9).FontColor("#666666");
+                        }
+                    });
                     row.ConstantItem(140).AlignRight()
                         .Text($"Tarih: {DateTime.Now:dd.MM.yyyy}")
                         .FontSize(9).FontColor("#666666");

@@ -1,4 +1,5 @@
 ﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.InkML;
 using GelirGiderPanel.Data;
 using GelirGiderPanel.Documents;
 using GelirGiderPanel.Models;
@@ -18,15 +19,21 @@ namespace GelirGiderPanel.Controllers
             _db = db;
         }
 
-        // GET: /Salaries
-        public  async Task<IActionResult> Index()
+        // GET: /Salaries?search=...
+        public async Task<IActionResult> Index(string? search)
         {
-            var salaries = await _db.Salaries
-               .AsNoTracking()
-               .OrderBy(s => s.Name)
-               .ToListAsync();
+            var query = _db.Salaries.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string term = search.Trim();
+                query = query.Where(s => s.Name.Contains(term));
+            }
+
+            var salaries = await query.OrderBy(s => s.Name).ToListAsync();
 
             ViewBag.Total = salaries.Sum(s => s.Amount);
+            ViewBag.Search = search;
             return View(salaries);
            
         }
@@ -92,12 +99,21 @@ namespace GelirGiderPanel.Controllers
 
         
         // GET: /Salaries/ExportExcel
-        public async Task<IActionResult> ExportExcel()
+        public async Task<IActionResult> ExportExcel(string? search)
         {
-            var salaries = await _db.Salaries
-                .AsNoTracking()
-                .OrderBy(s => s.Name)
-                .ToListAsync();
+            //var salaries = await _db.Salaries
+            //    .AsNoTracking()
+            //    .OrderBy(s => s.Name)
+            //    .ToListAsync();
+
+            var query = _db.Salaries.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string term = search.Trim();
+                query = query.Where(s => s.Name.Contains(term));
+            }
+            var salaries = await query.OrderBy(s => s.Name).ToListAsync();
+
 
             using var workbook = new XLWorkbook();
             var ws = workbook.Worksheets.Add("Maaşlar");
@@ -105,7 +121,9 @@ namespace GelirGiderPanel.Controllers
             ws.Cell(1, 1).Value = "Maaş Listesi";
             ws.Cell(1, 1).Style.Font.SetBold().Font.FontSize = 14;
             ws.Range(1, 1, 1, 3).Merge();
-            ws.Cell(2, 1).Value = $"Tarih: {DateTime.Now:dd.MM.yyyy}";
+            ws.Cell(2, 1).Value = string.IsNullOrWhiteSpace(search)
+                ? $"Tarih: {DateTime.Now:dd.MM.yyyy}"
+                : $"Tarih: {DateTime.Now:dd.MM.yyyy} | Filtre: \"{search.Trim()}\"";
             ws.Range(2, 1, 2, 3).Merge();
 
             int headerRow = 4;
@@ -148,15 +166,25 @@ namespace GelirGiderPanel.Controllers
                 $"MaasListesi_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
-        // GET: /Salaries/ExportPdf
-        public async Task<IActionResult> ExportPdf()
+        // GET: /Salaries/ExportPdf?search=...
+        public async Task<IActionResult> ExportPdf(string? search)
         {
-            var salaries = await _db.Salaries
-                .AsNoTracking()
-                .OrderBy(s => s.Name)
-                .ToListAsync();
+            //var salaries = await _db.Salaries
+            //    .AsNoTracking()
+            //    .OrderBy(s => s.Name)
+            //    .ToListAsync();
 
-            var document = new SalaryPdfDocument(salaries);
+            var query = _db.Salaries.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string term = search.Trim();
+                query = query.Where(s => s.Name.Contains(term));
+            }
+            var salaries = await query.OrderBy(s => s.Name).ToListAsync();
+
+            var document = new SalaryPdfDocument(salaries, search?.Trim());
+
+           // var document = new SalaryPdfDocument(salaries);
             byte[] pdf = document.GeneratePdf();
 
             return File(pdf, "application/pdf", $"MaasListesi_{DateTime.Now:yyyyMMdd}.pdf");

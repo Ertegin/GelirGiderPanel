@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Maaşlar";
     decimal total = ViewBag.Total ?? 0m;
+    string? search = ViewBag.Search as string;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -11,14 +12,51 @@
                 data-bs-toggle="modal" data-bs-target="#maasModal" onclick="maasResetForm()">
             <i class="bi bi-plus-lg me-1"></i> Yeni Maaş
         </button>
-        <a asp-action="ExportExcel" class="btn text-white" style="background-color:#0e7a5f;">
+        <a asp-action="ExportExcel" asp-route-search="@search" class="btn text-white" id="maasExcelLink"  style="background-color:#0e7a5f;">
             <i class="bi bi-file-earmark-excel me-1"></i> Excel
         </a>
-        <a asp-action="ExportPdf" class="btn text-white" style="background-color:#b3423a;">
+        <a asp-action="ExportPdf" asp-route-search="@search" id="maasPdfLink" class="btn text-white" style="background-color:#b3423a;">
             <i class="bi bi-file-earmark-pdf me-1"></i> PDF
         </a>
     </div>
 </div>
+
+@* İsim arama *@
+@* <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Index" class="d-flex flex-wrap align-items-center gap-2">
+            <div class="input-group input-group-sm" style="max-width:320px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control"
+                       placeholder="İsme göre ara…" value="@search" />
+            </div>
+            <button type="submit" class="btn btn-sm text-white" style="background-color:#0e7a5f;">
+                Ara
+            </button>
+            @if (!string.IsNullOrEmpty(search))
+            {
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Temizle</a>
+                <span class="badge ms-auto" style="background-color:#14231f;">
+                    Filtre: "@search" — @Model.Count sonuç
+                </span>
+            }
+        </form>
+    </div>
+</div> *@
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Index" class="d-flex flex-wrap align-items-center gap-2">
+            <div class="input-group input-group-sm" style="max-width:320px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" id="maasSearch" class="form-control"
+                       placeholder="İsme göre ara…" value="@search" autocomplete="off"
+                       oninput="maasLiveFilter()" />
+            </div>
+            <span class="small text-muted" id="maasResultInfo"></span>
+        </form>
+    </div>
+</div>
+
 
 @if (TempData["Error"] is string err)
 {
@@ -30,7 +68,7 @@
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="text-muted small">Personel Sayısı</div>
-                <div class="fs-4 fw-bold" style="color:#14231f;">@Model.Count</div>
+                <div class="fs-4 fw-bold" style="color:#14231f;" id="maasCountCard" >@Model.Count</div>
             </div>
         </div>
     </div>
@@ -39,7 +77,7 @@
              style="border-left:4px solid #b3423a !important;">
             <div class="card-body">
                 <div class="text-muted small">Toplam Maaş</div>
-                <div class="fs-4 fw-bold" style="color:#b3423a;">@total.ToString("N2") ₺</div>
+                <div class="fs-4 fw-bold" style="color:#b3423a;" id="maasTotalCard">@total.ToString("N2") ₺</div>
             </div>
         </div>
     </div>
@@ -48,7 +86,14 @@
 @if (!Model.Any())
 {
     <div class="alert alert-light border">
-        Henüz maaş kaydı yok. "Yeni Maaş" ile ekleyebilirsiniz.
+        @if (!string.IsNullOrEmpty(search))
+        {
+            <text>"@search" aramasıyla eşleşen kayıt bulunamadı.</text>
+        }
+        else
+        {
+            <text>Henüz maaş kaydı yok. "Yeni Maaş" ile ekleyebilirsiniz.</text>
+        }
     </div>
 }
 else
@@ -67,7 +112,9 @@ else
                 <tbody>
                     @foreach (var s in Model)
                     {
-                        <tr>
+                        <tr class="maas-row" data-name="@s.Name"
+                            data-amount="@s.Amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)">
+
                             <td class="fw-semibold">@s.Name</td>
                             <td class="text-end fw-semibold" style="color:#b3423a;">
                                 @s.Amount.ToString("N2") ₺
@@ -95,11 +142,14 @@ else
                 <tfoot style="background-color:#f5f7f6;">
                     <tr class="fw-bold">
                         <td>TOPLAM</td>
-                        <td class="text-end" style="color:#b3423a;">@total.ToString("N2") ₺</td>
+                        <td class="text-end" style="color:#b3423a;" id="maasFootTotal">@total.ToString("N2") ₺</td>
                         <td colspan="2"></td>
                     </tr>
                 </tfoot>
             </table>
+        </div>
+        <div class="alert alert-light border m-3 d-none" id="maasNoMatch">
+            Aramanızla eşleşen kayıt bulunamadı.
         </div>
     </div>
 }
@@ -155,6 +205,52 @@ else
 
 @section Scripts {
     <script>
+            // ==================== CANLI İSİM FİLTRESİ ====================
+        function maasLiveFilter() {
+            console.log("filteleme--")
+            const input = document.getElementById('maasSearch');
+            // Türkçe harf güvenli küçültme: "AHMET".toLocaleLowerCase('tr') → "ahmet",
+            // "IŞIK" → "ışık" (normal toLowerCase 'I'yı 'i' yapar, Türkçe'de yanlıştır)
+            const term = input.value.trim().toLocaleLowerCase('tr');
+
+            let visible = 0, totalAmount = 0;
+            document.querySelectorAll('.maas-row').forEach(tr => {
+                const name = (tr.dataset.name || '').toLocaleLowerCase('tr');
+                const match = term === '' || name.includes(term);
+                tr.classList.toggle('d-none', !match);
+                if (match) {
+                    visible++;
+                    totalAmount += parseFloat(tr.dataset.amount) || 0;
+                }
+            });
+
+            // Kartları ve tablo toplamını görünen satırlara göre güncelle
+            const fmt = totalAmount.toLocaleString('tr-TR',
+                { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+            const countCard = document.getElementById('maasCountCard');
+            const totalCard = document.getElementById('maasTotalCard');
+            const footTotal = document.getElementById('maasFootTotal');
+            if (countCard) countCard.textContent = visible;
+            if (totalCard) totalCard.textContent = fmt;
+            if (footTotal) footTotal.textContent = fmt;
+
+            // Sonuç bilgisi + boş sonuç mesajı
+            const info = document.getElementById('maasResultInfo');
+            info.textContent = term === '' ? '' : `${visible} sonuç`;
+            const noMatch = document.getElementById('maasNoMatch');
+            if (noMatch) noMatch.classList.toggle('d-none', visible > 0 || term === '');
+
+            // Excel/PDF linkleri yazılan aramayı taşısın
+            const q = term === '' ? '' : ('?search=' + encodeURIComponent(input.value.trim()));
+            const excel = document.getElementById('maasExcelLink');
+            const pdf = document.getElementById('maasPdfLink');
+            if (excel) excel.href = '/Salaries/ExportExcel' + q;
+            if (pdf) pdf.href = '/Salaries/ExportPdf' + q;
+        }
+
+        // Sayfa sunucu filtresiyle açıldıysa (URL'de ?search=) durumu senkronla
+        document.addEventListener('DOMContentLoaded', maasLiveFilter);
+
         function maasResetForm() {
             document.getElementById('maasModalTitle').textContent = 'Yeni Maaş';
             document.getElementById('mId').value = '0';
