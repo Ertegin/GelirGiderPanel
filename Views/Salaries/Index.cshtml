@@ -1,0 +1,176 @@
+﻿@model List<GelirGiderPanel.Models.Salary>
+@{
+    ViewData["Title"] = "Maaşlar";
+    decimal total = ViewBag.Total ?? 0m;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0" style="font-family:'Sora',sans-serif;">Maaşlar</h4>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn text-white" style="background-color:#0e7a5f;"
+                data-bs-toggle="modal" data-bs-target="#maasModal" onclick="maasResetForm()">
+            <i class="bi bi-plus-lg me-1"></i> Yeni Maaş
+        </button>
+        <a asp-action="ExportExcel" class="btn text-white" style="background-color:#0e7a5f;">
+            <i class="bi bi-file-earmark-excel me-1"></i> Excel
+        </a>
+        <a asp-action="ExportPdf" class="btn text-white" style="background-color:#b3423a;">
+            <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+        </a>
+    </div>
+</div>
+
+@if (TempData["Error"] is string err)
+{
+    <div class="alert alert-danger">@err</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Personel Sayısı</div>
+                <div class="fs-4 fw-bold" style="color:#14231f;">@Model.Count</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="card border-0 shadow-sm h-100"
+             style="border-left:4px solid #b3423a !important;">
+            <div class="card-body">
+                <div class="text-muted small">Toplam Maaş</div>
+                <div class="fs-4 fw-bold" style="color:#b3423a;">@total.ToString("N2") ₺</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-light border">
+        Henüz maaş kaydı yok. "Yeni Maaş" ile ekleyebilirsiniz.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background-color:#f5f7f6;">
+                    <tr>
+                        <th>İsim</th>
+                        <th class="text-end">Maaş</th>
+                        <th>Açıklama</th>
+                        <th class="text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@s.Name</td>
+                            <td class="text-end fw-semibold" style="color:#b3423a;">
+                                @s.Amount.ToString("N2") ₺
+                            </td>
+                            <td class="text-muted small">@s.Description</td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                                        data-bs-toggle="modal" data-bs-target="#maasModal"
+                                        data-id="@s.Id"
+                                        data-name="@s.Name"
+                                        data-amount="@s.Amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-desc="@s.Description"
+                                        onclick="maasFillForm(this)">
+                                    Düzenle
+                                </button>
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post"
+                                      class="d-inline"
+                                      onsubmit="return confirm('@s.Name maaş kaydı silinsin mi?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0">Sil</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot style="background-color:#f5f7f6;">
+                    <tr class="fw-bold">
+                        <td>TOPLAM</td>
+                        <td class="text-end" style="color:#b3423a;">@total.ToString("N2") ₺</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@* ==================== MAAŞ MODALI ==================== *@
+<div class="modal fade" id="maasModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:1rem;">
+            <form asp-action="Save" method="post">
+                <input type="hidden" name="Id" id="mId" value="0" />
+
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="maasModalTitle"
+                        style="font-family:'Sora',sans-serif;">
+                        Yeni Maaş
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">İsim <span class="text-danger">*</span></label>
+                        <input type="text" name="Name" id="mName" class="form-control"
+                               placeholder="Örn: Ahmet Yılmaz" maxlength="150" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Maaş (TL) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₺</span>
+                            <input type="number" name="Amount" id="mAmount" class="form-control"
+                                   min="0.01" step="0.01" placeholder="0,00" required />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Açıklama</label>
+                        <textarea name="Description" id="mDesc" class="form-control" rows="2"
+                                  maxlength="300" placeholder="Örn: Usta — haftalık ödeme"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        İptal
+                    </button>
+                    <button type="submit" class="btn text-white px-4" style="background-color:#14231f;">
+                        <i class="bi bi-save me-1"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function maasResetForm() {
+            document.getElementById('maasModalTitle').textContent = 'Yeni Maaş';
+            document.getElementById('mId').value = '0';
+            document.getElementById('mName').value = '';
+            document.getElementById('mAmount').value = '';
+            document.getElementById('mDesc').value = '';
+        }
+
+        function maasFillForm(btn) {
+            maasResetForm();
+            document.getElementById('maasModalTitle').textContent = 'Maaşı Düzenle';
+            const d = btn.dataset;
+            document.getElementById('mId').value = d.id;
+            document.getElementById('mName').value = d.name || '';
+            document.getElementById('mAmount').value = d.amount || '';
+            document.getElementById('mDesc').value = d.desc || '';
+        }
+    </script>
+}

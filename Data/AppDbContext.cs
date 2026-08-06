@@ -20,9 +20,17 @@ namespace GelirGiderPanel.Data
         public DbSet<CariAccount> CariAccounts { get; set; }
         public DbSet<CariTransaction> CariTransactions { get; set; }
 
+        public DbSet<Salary> Salaries { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Salary>(entity =>
+            {
+                entity.Property(s => s.Amount).HasColumnType("decimal(18,2)");
+                entity.HasIndex(s => s.Name);
+            });
 
             // ---- İlişki yapılandırmaları ----
             // Kategori silinirse altındaki işlemler silinmesin (Restrict):
