@@ -26,6 +26,8 @@ namespace GelirGiderPanel.ViewModels
 
         /// <summary>Kategori bazında gelir/gider dökümü.</summary>
         public List<CategoryReportRow> CategorySummary { get; set; } = new();
+
+        public bool CanViewTransactionDetails { get; set; }
     }
 
     public class CategoryReportRow

@@ -212,3 +212,25 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+ <script>
+    // Sağ tıkl engelle
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        const key = e.key.toLowerCase();
+
+        if (
+            e.key === 'F12' ||
+            (e.ctrlKey && key === 'u') ||
+            (e.ctrlKey && e.shiftKey && key === 'i') ||
+            (e.ctrlKey && e.shiftKey && key === 'j') ||
+            (e.ctrlKey && key === 's')
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    });
+</script> 

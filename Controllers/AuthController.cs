@@ -18,6 +18,8 @@ namespace GelirGiderPanel.Controllers
         }
         public IActionResult Login()
         {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToAction("Index", "Home");
             return View();
      
         }

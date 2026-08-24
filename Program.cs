@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using WebMarkupMin.AspNetCoreLatest;
+using WebMarkupMin.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,21 @@ builder.Services.AddControllersWithViews();
 });
  */
 
+builder.Services.AddWebMarkupMin(options =>
+{
+    options.AllowMinificationInDevelopmentEnvironment = false;
+})
+.AddHtmlMinification(options =>
+{
+    options.MinificationSettings.RemoveHtmlComments = true;
+    options.MinificationSettings.MinifyEmbeddedCssCode = true;
+    options.MinificationSettings.MinifyEmbeddedJsCode = true;
+    options.MinificationSettings.RemoveRedundantAttributes = true;
+    options.MinificationSettings.RemoveEmptyAttributes = false;
+    options.MinificationSettings.WhitespaceMinificationMode = WebMarkupMin.Core.WhitespaceMinificationMode.Aggressive;
+});
+
+
 // Entity Framework Core + MSSQL
 // Bağlantı dizesi appsettings.json içindeki "DefaultConnection" anahtarından okunur.
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -39,23 +56,34 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     opt.Cookie.Name = "UserDetail";
     opt.AccessDeniedPath = "/Auth/AccessDenied";
     // 
-    opt.ExpireTimeSpan = TimeSpan.FromHours(1); //Cookie) varsayılan yaşam süresini
+    opt.ExpireTimeSpan = TimeSpan.FromHours(2); //Cookie) varsayılan yaşam süresini
     opt.SlidingExpiration = true; //aktifliğine bağlı olarak oturum süresini dinamik olarak uzatan
 
     opt.Events.OnSignedIn = async context =>
     {
         // Kullanıcı giriş yaptıktan sonra yapılacak işlemler
         // Örneğin, kullanıcı bilgilerini güncelleme veya loglama
-        var db = context.HttpContext.RequestServices
+        try
+        {
+            var db = context.HttpContext.RequestServices
             .GetRequiredService<GelirGiderPanel.Data.AppDbContext>();
 
-        db.LoginLogs.Add(new GelirGiderPanel.Models.LoginLog
+            db.LoginLogs.Add(new GelirGiderPanel.Models.LoginLog
+            {
+                UserName = context.Principal?.Identity?.Name ?? "Bilinmiyor",
+                IpAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                LoginTime = DateTime.Now
+            });
+            await db.SaveChangesAsync();
+        }
+        catch 
         {
-            UserName = context.Principal?.Identity?.Name ?? "Bilinmiyor",
-            IpAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString(),
-            LoginTime = DateTime.Now
-        });
-        await db.SaveChangesAsync();
+            /*
+             Ve yayına çıktığınızda RemoteIpAddress büyük ihtimalle gerçek ziyaretçi IP'si yerine hosting'in proxy IP'sini gösterecek
+            — gerçek IP isterseniz X-Forwarded-For başlığını okuyan ForwardedHeaders middleware'i eklemek gerekir, ama bu kritik değil, sonraya bırakabilirsiniz.
+             */
+
+        }
     };
 });
 
@@ -67,13 +95,28 @@ builder.Services.AddAuthorization(opt =>
 
 var app = builder.Build();
 
+//if (app.Environment.IsDevelopment())
+//{
+//    using var serviceScope = app.Services.CreateScope();
+//    var dbContext = serviceScope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    dbContext.Database.Migrate(); // Bekleyen migration'ları uygular
+
+//}
 // ============ MIDDLEWARE PIPELINE ============
 
+//using (var scope = app.Services.CreateScope())
+//{
+//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    db.Database.Migrate();   // Bekleyen migration'ları otomatik uygular
+//    await DbSeeder.SeedAsync(scope.ServiceProvider);
+//}
+app.UseWebMarkupMin();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
 
 // Kültür ayarı: Tarihler Türkçe gösterilsin, ancak sayısal model binding'de
 // ondalık ayracı sorunlarını önlemek için sayı formatı nokta (.) bazlı tutulur.

@@ -22,10 +22,13 @@ namespace GelirGiderPanel.Controllers
         /// </summary>
 
         private readonly AppDbContext _context;
+        private readonly IAuthorizationService _authorizationService;
 
-        public ReportsController(AppDbContext context)
+
+        public ReportsController(AppDbContext context, IAuthorizationService authorizationService = null)
         {
             _context = context;
+            _authorizationService = authorizationService;
         }
 
         //// GET: /Reports?startDate=...&endDate=...&categoryId=1&transactionTypeId=2
@@ -34,13 +37,28 @@ namespace GelirGiderPanel.Controllers
         {
             var (start, end) = NormalizeDates(startDate, endDate);
             var model = await BuildReportAsync(start, end, categoryId, transactionTypeId);
+            var authResult = await _authorizationService.AuthorizeAsync(User, "AdminPolicy");
+            model.CanViewTransactionDetails = authResult.Succeeded;
+            if (!model.CanViewTransactionDetails)
+            {
+                model.Transactions = new();
+                model.CategorySummary = new();
+
+            }
+
             await LoadFilterDropdownsAsync(categoryId, transactionTypeId);
             return View(model);
+
+            
         }
 
         //  GET: /Reports/ExportToExcel?startDate=...&endDate=...&categoryId=...&transactionTypeId=...
         public async Task<IActionResult> ExportToExcel(DateTime? startDate, DateTime? endDate, int? categoryId, int? transactionTypeId)
         {
+            var authResult = await _authorizationService.AuthorizeAsync(User, "AdminPolicy");
+            if (!authResult.Succeeded)
+                return Forbid();
+
             var (start, end) = NormalizeDates(startDate, endDate);
             var report = await BuildReportAsync(start, end , categoryId, transactionTypeId);
 
@@ -179,6 +197,9 @@ namespace GelirGiderPanel.Controllers
         public async Task<IActionResult> ExportToPdf(
             DateTime? startDate, DateTime? endDate, int? categoryId, int? transactionTypeId)
         {
+            var authResult = await _authorizationService.AuthorizeAsync(User, "AdminPolicy");
+            if (!authResult.Succeeded)
+                return Forbid();
             var (start, end) = NormalizeDates(startDate, endDate);
             var report = await BuildReportAsync(start, end, categoryId, transactionTypeId);
             var (filterText, categoryName) = await BuildFilterTextAsync(categoryId, transactionTypeId);

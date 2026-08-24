@@ -97,6 +97,10 @@
 
 <!-- ======= DÖNEM ÖZETİ ======= -->
 <div class="row g-3 mb-4">
+    @if (Model.CanViewTransactionDetails)
+    {
+        
+    
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-body">
@@ -123,11 +127,16 @@
             </div>
         </div>
     </div>
+    }
 </div>
 
 <!-- ======= KATEGORİ DÖKÜMÜ ======= -->
 <div class="card mb-4">
     <div class="card-body">
+        @if (Model.CanViewTransactionDetails)
+        {
+            
+        
         <h5 class="card-title mb-3">Kategori Dökümü</h5>
         @if (!Model.CategorySummary.Any())
         {
@@ -163,12 +172,49 @@
                 </table>
             </div>
         }
+        }
+        else
+        {
+            <h5 class="card-title mb-3">İşlem Detayları</h5>
+            <div class="position-relative">
+               
+                <table class="table align-middle mb-0" style="filter: blur(6px); user-select: none;" aria-hidden="true">
+                    <thead class="table-light">
+                        <tr><th>Tarih</th><th>Açıklama</th><th>Kategori</th><th>Tür</th><th class="text-end">Tutar</th></tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < 5; i++)
+                        {
+                            <tr>
+                                <td>00.00.0000</td>
+                                <td>-----</td>
+                                <td>-----</td>
+                                <td><span class="badge rounded-pill bg-secondary">----</span></td>
+                                <td class="text-end">0.000,00 ₺</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                
+                <div class="position-absolute top-50 start-50 translate-middle text-center bg-white rounded-3 shadow-sm p-4">
+                    <i class="bi bi-lock-fill fs-3" style="color:#b3423a;"></i>
+                    <p class="mb-0 fw-semibold mt-2">İşlem detaylarını görüntüleme yetkiniz yok</p>
+                    <small class="text-muted">Erişim için yöneticinizle iletişime geçin.</small>
+                </div>
+            </div>
+        }
+
     </div>
 </div>
 
 <!-- ======= İŞLEM DETAYLARI ======= -->
 <div class="card">
     <div class="card-body">
+        @if (Model.CanViewTransactionDetails)
+        {
+           
+        
         <h5 class="card-title mb-3">İşlem Detayları (@Model.Transactions.Count kayıt)</h5>
         @if (!Model.Transactions.Any())
         {
@@ -207,6 +253,38 @@
                         }
                     </tbody>
                 </table>
+            </div>
+        }
+        }
+        else
+        {
+            <h5 class="card-title mb-3">İşlem Detayları</h5>
+            <div class="position-relative">
+                <!-- Altta GERÇEK VERİ YOK: dekoratif sahte satırlar -->
+                <table class="table align-middle mb-0" style="filter: blur(6px); user-select: none;" aria-hidden="true">
+                    <thead class="table-light">
+                        <tr><th>Tarih</th><th>Açıklama</th><th>Kategori</th><th>Tür</th><th class="text-end">Tutar</th></tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < 5; i++)
+                        {
+                            <tr>
+                                <td>00.00.0000</td>
+                                <td>-----</td>
+                                <td>-----</td>
+                                <td><span class="badge rounded-pill bg-secondary">----</span></td>
+                                <td class="text-end">0.000,00 ₺</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <!-- Kilit mesajı -->
+                <div class="position-absolute top-50 start-50 translate-middle text-center bg-white rounded-3 shadow-sm p-4">
+                    <i class="bi bi-lock-fill fs-3" style="color:#b3423a;"></i>
+                    <p class="mb-0 fw-semibold mt-2">İşlem detaylarını görüntüleme yetkiniz yok</p>
+                    <small class="text-muted">Erişim için yöneticinizle iletişime geçin.</small>
+                </div>
             </div>
         }
     </div>

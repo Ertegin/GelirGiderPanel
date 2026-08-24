@@ -22,6 +22,10 @@ namespace GelirGiderPanel.Controllers
         // GET: /Salaries?search=...
         public async Task<IActionResult> Index(string? search)
         {
+            //         var salaries = await _db.Salaries
+            //.AsNoTracking()
+            //.OrderBy(s => s.Name)
+            //.ToListAsync();
             var query = _db.Salaries.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -35,7 +39,7 @@ namespace GelirGiderPanel.Controllers
             ViewBag.Total = salaries.Sum(s => s.Amount);
             ViewBag.Search = search;
             return View(salaries);
-           
+
         }
 
         // POST: /Salaries/Save — modal formu (Id=0 yeni, Id>0 düzenleme)
@@ -97,7 +101,7 @@ namespace GelirGiderPanel.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        
+
         // GET: /Salaries/ExportExcel
         public async Task<IActionResult> ExportExcel(string? search)
         {
@@ -184,11 +188,11 @@ namespace GelirGiderPanel.Controllers
 
             var document = new SalaryPdfDocument(salaries, search?.Trim());
 
-           // var document = new SalaryPdfDocument(salaries);
+            // var document = new SalaryPdfDocument(salaries);
             byte[] pdf = document.GeneratePdf();
 
             return File(pdf, "application/pdf", $"MaasListesi_{DateTime.Now:yyyyMMdd}.pdf");
         }
-        
+
     }
 }
